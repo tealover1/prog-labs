@@ -1,0 +1,89 @@
+; ---------------------------------------
+;   RESULT = A + B – 3*C
+;   A: 0200–0202
+;   B: 0203–0205
+;   C: 0206–0208
+;   RESULT → 0209–020B
+; ---------------------------------------
+
+; ---------- ЗАГРУЗКА A В C,D,E ----------
+        LDA 0200h      ; LSB
+        MOV E, A
+        LDA 0201h      ; MID
+        MOV D, A
+        LDA 0202h      ; MSB
+        MOV C, A       ; C D E = A
+
+; ---------- result += B ----------
+        LDA 0203h
+        ADD E
+        MOV E, A
+
+        LDA 0204h
+        ADC D
+        MOV D, A
+
+        LDA 0205h
+        ADC C
+        MOV C, A       ; C D E = A + B
+
+; ---------- temp = C (в B,H,L) ----------
+        LDA 0206h
+        MOV L, A
+        LDA 0207h
+        MOV H, A
+        LDA 0208h
+        MOV B, A       ; B H L = C
+
+; ---------- temp = 2*C (сдвиг влево 3-байтовый) ----------
+; Сдвигаем L
+        MOV A, L
+        RAL
+        MOV L, A
+
+; Сдвигаем H (пернос от L уже в CY)
+        MOV A, H
+        RAL
+        MOV H, A
+
+; Сдвигаем B (перенос от H в CY)
+        MOV A, B
+        RAL
+        MOV B, A       ; теперь temp = 2*C
+
+; ---------- temp = 3*C = (2*C + C) ----------
+        LDA 0206h
+        ADD L
+        MOV L, A
+
+        LDA 0207h
+        ADC H
+        MOV H, A
+
+        LDA 0208h
+        ADC B
+        MOV B, A       ; B H L = 3*C
+
+; ---------- result = (A+B) – 3*C ----------
+        MOV A, E
+        SUB L
+        MOV E, A
+
+        MOV A, D
+        SBB H
+        MOV D, A
+
+        MOV A, C
+        SBB B
+        MOV C, A       ; C D E = RESULT
+
+; ---------- запись результата ----------
+        MOV A, E
+        STA 0209h
+        MOV A, D
+        STA 020Ah
+        MOV A, C
+        STA 020Bh
+
+        HLT
+

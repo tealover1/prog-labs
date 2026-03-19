@@ -1,0 +1,102 @@
+; -------------------------------
+; 3-байтное выражение:
+; RESULT = A + B – 3*C
+;
+; A по адресу 0200h
+; B по адресу 0203h
+; C по адресу 0206h
+; Результат по адресу 0209h
+; -------------------------------
+
+; ----- Загрузить A в C,D,E -----
+        LDA 0200h
+        MOV E, A
+        LDA 0201h
+        MOV D, A
+        LDA 0202h
+        MOV C, A      ; C=MSB, D=mid, E=LSB (аккумулятор результата)
+
+; ----- Прибавить B -----
+
+        LDA 0203h
+        ADD E
+        MOV E, A
+
+        LDA 0204h
+        ADC D
+        MOV D, A
+
+        LDA 0205h
+        ADC C
+        MOV C, A
+
+; ----- temp = 3*C = (C<<1)+C -----
+
+; С = источник (0206..0208)
+; L,H,B = временные (LSB,mid,MSB)
+
+        LDA 0206h
+        MOV L, A
+        LDA 0207h
+        MOV H, A
+        LDA 0208h
+        MOV B, A
+
+; HL(B) = 2*C (сдвиг влево)
+        MOV A, L
+        RAL
+        MOV L, A
+
+        MOV A, H
+        RAL
+        MOV H, A
+
+        MOV A, B
+        RAL
+        MOV B, A
+
+; temp += C (3*C готово)
+
+        LDA 0206h
+        ADD L
+        MOV L, A
+
+        LDA 0207h
+        ADC H
+        MOV H, A
+
+        LDA 0208h
+        ADC B
+        MOV B, A
+
+; Теперь temp = 3*C в L,H,B
+
+; ----- result = (A+B) – temp -----
+
+; вычитание LSB
+        MOV A, E
+        SUB L
+        MOV E, A
+
+; вычитание mid
+        MOV A, D
+        SBB H
+        MOV D, A
+
+; вычитание MSB
+        MOV A, C
+        SBB B
+        MOV C, A
+
+; ----- запись результата -----
+
+        MOV A, E
+        STA 0209h
+
+        MOV A, D
+        STA 020Ah
+
+        MOV A, C
+        STA 020Bh
+
+        HLT
